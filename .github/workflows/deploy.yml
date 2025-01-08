@@ -38,6 +38,11 @@ jobs:
         run: |
           ssh digitalocean << 'EOF'
             # Navigate to the project directory
+            if [ ! -d "/root/shagunpe" ]; then
+              # Clone the repository if it doesn't exist
+              git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
+            fi
+
             cd /root/shagunpe
 
             # Pull the latest changes from the main branch
