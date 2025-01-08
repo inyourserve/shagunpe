@@ -28,8 +28,16 @@ jobs:
       - name: Deploy to Digital Ocean
         run: |
           ssh digitalocean << 'EOF'
-            cd /root/shagunpe
-            git pull origin main || git clone https://github.com/inyourserve/shagunpe.git .
+            # Navigate to the project directory or clone the repo if not present
+            cd /root/shagunpe || git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
+
+            # Ensure the local branch is in sync with the remote
+            git reset --hard origin/main
+
+            # Debug step: Check if requirements.txt exists
+            ls -la /root/shagunpe
+
+            # Docker deployment steps
             docker-compose down
             docker-compose build --no-cache
             docker-compose up -d
