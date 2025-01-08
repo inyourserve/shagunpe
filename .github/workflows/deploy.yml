@@ -1,17 +1,20 @@
-name: Deploy to Digital Ocean
+name: Deploy to DigitalOcean
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger the deploy on pushing to the main branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up SSH keys to access DigitalOcean
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh/
@@ -25,21 +28,32 @@ jobs:
             StrictHostKeyChecking no
           END
 
-      - name: Deploy to Digital Ocean
+      # Step 3: Deploy to DigitalOcean
+      - name: Deploy to DigitalOcean
         run: |
           ssh digitalocean << 'EOF'
-            # Navigate to the project directory or clone the repo if not present
-            cd /root/shagunpe || git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
+            # Navigate to the project directory or clone the repository if not present
+            if [ ! -d "/root/shagunpe" ]; then
+              git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
+            fi
+            cd /root/shagunpe
 
-            # Ensure the local branch is in sync with the remote
+            # Pull the latest changes from the main branch
             git reset --hard origin/main
+            git pull origin main
 
-            # Debug step: Check if requirements.txt exists
+            # List files to check if requirements.txt is present
             ls -la /root/shagunpe
 
-            # Docker deployment steps
+            # Bring down any running containers
             docker-compose down
+
+            # Build the Docker containers without cache
             docker-compose build --no-cache
+
+            # Start the Docker containers in detached mode
             docker-compose up -d
+
+            # Clean up unused Docker objects (optional)
             docker system prune -f
           EOF
