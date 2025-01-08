@@ -5,15 +5,6 @@ services:
     build: .
     ports:
       - "8000:8000"
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_NAME=${DB_NAME}
-      - SECRET_KEY=${SECRET_KEY}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - MSG91_AUTH_KEY=${MSG91_AUTH_KEY}
-      - MSG91_TEMPLATE_ID=${MSG91_TEMPLATE_ID}
-      - REDIS_URL=${REDIS_URL}
+    env_file:
+      - .env
     restart: always
