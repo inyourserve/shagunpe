@@ -1,4 +1,3 @@
-# src/db/queries/users.py
 class UserQueries:
     CREATE_USER = """
         INSERT INTO users (phone)
