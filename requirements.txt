@@ -1,0 +1,29 @@
+# Core
+fastapi==0.115.6
+uvicorn==0.24.0
+pydantic[email]==2.10.4
+starlette==0.41.3
+
+# Database
+asyncpg==0.30.0
+alembic==1.12.1
+SQLAlchemy==2.0.23
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==44.0.0
+
+# Utils
+python-multipart==0.0.6
+python-dotenv==1.0.1
+httpx==0.25.1
+redis==5.0.1
+
+# Dependencies
+annotated-types==0.7.0
+anyio==4.8.0
+async-timeout==5.0.1
+cffi==1.17.1
+pydantic-core==2.27.2
+pydantic-settings==2.1.0
