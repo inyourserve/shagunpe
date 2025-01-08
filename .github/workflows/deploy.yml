@@ -16,13 +16,16 @@ jobs:
 
       # Step 2: Set up SSH keys to access DigitalOcean
       - name: Configure SSH
+        env:
+          DO_DROPLET_SSH_KEY: ${{ secrets.DO_DROPLET_SSH_KEY }}
+          DO_DROPLET_IP: ${{ secrets.DO_DROPLET_IP }}
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ secrets.DO_DROPLET_SSH_KEY }}" > ~/.ssh/sgnpe
+          echo "$DO_DROPLET_SSH_KEY" > ~/.ssh/sgnpe
           chmod 600 ~/.ssh/sgnpe
           cat >>~/.ssh/config <<END
           Host digitalocean
-            HostName ${{ secrets.DO_DROPLET_IP }}
+            HostName $DO_DROPLET_IP
             User root
             IdentityFile ~/.ssh/sgnpe
             StrictHostKeyChecking no
@@ -30,13 +33,10 @@ jobs:
 
       # Step 3: Deploy to DigitalOcean
       - name: Deploy to DigitalOcean
+        env:
+          DO_DROPLET_IP: ${{ secrets.DO_DROPLET_IP }}
         run: |
           ssh digitalocean << 'EOF'
-            # Navigate to the project directory or clone the repository if not present
-            if [ ! -d "/root/shagunpe" ]; then
-              git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
-            fi
-
             # Navigate to the project directory
             cd /root/shagunpe
 
@@ -45,7 +45,13 @@ jobs:
             git reset --hard origin/main
 
             # Ensure requirements.txt exists
-            ls -la /root/shagunpe/requirements.txt
+            if [ ! -f "/root/shagunpe/requirements.txt" ]; then
+              echo "requirements.txt not found"
+              exit 1
+            fi
+
+            # Stop and remove existing containers (if any)
+            docker-compose down
 
             # Build Docker containers without cache
             docker-compose build --no-cache
