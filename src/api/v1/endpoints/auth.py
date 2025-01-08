@@ -1,4 +1,3 @@
-# src/api/v1/endpoints/auth.py
 from fastapi import APIRouter, Depends, HTTPException
 from src.services.auth.phone import PhoneAuthService
 from src.core.security.jwt import jwt_handler, security
