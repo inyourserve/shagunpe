@@ -1,4 +1,3 @@
-# src/services/auth/phone.py
 from fastapi import HTTPException
 from src.services.notification.msg91 import MSG91Client
 from src.core.security.jwt import jwt_handler
