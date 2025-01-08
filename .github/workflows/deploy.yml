@@ -36,19 +36,21 @@ jobs:
             if [ ! -d "/root/shagunpe" ]; then
               git clone https://github.com/inyourserve/shagunpe.git /root/shagunpe
             fi
+
+            # Navigate to the project directory
             cd /root/shagunpe
 
             # Pull the latest changes from the main branch
+            git fetch origin
             git reset --hard origin/main
-            git pull origin main
 
-            # List files to check if requirements.txt is present
-            ls -la /root/shagunpe
+            # Ensure requirements.txt exists
+            ls -la /root/shagunpe/requirements.txt
 
-            # Build the Docker containers without cache
+            # Build Docker containers without cache
             docker-compose build --no-cache
 
-            # Start the Docker containers in detached mode
+            # Start Docker containers in detached mode
             docker-compose up -d
 
             # Clean up unused Docker objects (optional)
