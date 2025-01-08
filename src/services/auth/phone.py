@@ -18,7 +18,4 @@ class PhoneAuthService:
             raise HTTPException(status_code=400, detail="Invalid OTP")
 
         access_token = jwt_handler.create_access_token(phone)
-        return {
-            "access_token": access_token,
-            "token_type": "bearer"
-        }
+        return {"access_token": access_token, "token_type": "bearer"}
