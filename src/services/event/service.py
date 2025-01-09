@@ -1,4 +1,3 @@
-# src/services/event/service.py
 from fastapi import HTTPException
 from src.core.config.database import db
 from src.db.models.event import EventCreate
