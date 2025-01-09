@@ -1,9 +1,10 @@
-# src/core/security/jwt.py
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
+# /core/security/jwt.py
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 from src.core.config.app import settings
+from src.core.logging import logger
 
 security = HTTPBearer()
 
@@ -14,19 +15,26 @@ class JWTHandler:
         self.algorithm = "HS256"
         self.access_token_expire_minutes = 60 * 24  # 24 hours
 
-    def create_access_token(self, phone: str) -> str:
-        data = {
-            "phone": phone,
-            "exp": datetime.utcnow()
-            + timedelta(minutes=self.access_token_expire_minutes),
-        }
-        return jwt.encode(data, self.secret_key, algorithm=self.algorithm)
+    def create_access_token(self, data: dict) -> str:
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+        to_encode.update({"exp": expire})
+
+        return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
 
     def verify_token(self, token: str) -> dict:
         try:
-            return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            return payload
         except JWTError:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(
+                status_code=401, detail="Could not validate credentials"
+            )
+
+    async def get_current_user(
+        self, credentials: HTTPAuthorizationCredentials = Depends(security)
+    ):
+        return self.verify_token(credentials.credentials)
 
 
 jwt_handler = JWTHandler()

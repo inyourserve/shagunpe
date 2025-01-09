@@ -1,31 +1,25 @@
-# src/core/logging/logger.py
 import logging
-import json
+import os
 from datetime import datetime
-from typing import Any
 
-from src.services.auth import phone
+# Create logs directory
+os.makedirs("logs", exist_ok=True)
 
+# Create logger
+logger = logging.getLogger("shagunpe")
+logger.setLevel(logging.DEBUG)
 
-class CustomLogger:
-    def __init__(self):
-        self.logger = logging.getLogger("shagunpe")
-        self.logger.setLevel(logging.INFO)
+# Create formatters and handlers
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
 
-        # File Handler
-        fh = logging.FileHandler("logs/shagunpe.log")
-        fh.setFormatter(
-            logging.Formatter(
-                '{"timestamp":"%(asctime)s", "level":"%(levelname)s", "message":%(message)s}'
-            )
-        )
-        self.logger.addHandler(fh)
+# Console Handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
-    def log_event(self, event_type: str, data: dict[str, Any]):
-        message = json.dumps({"event": event_type, "data": data})
-        self.logger.info(message)
-
-
-# Usage in auth service
-logger = CustomLogger()
-logger.log_event("otp_sent", {"phone": phone, "timestamp": datetime.utcnow()})
+# File Handler
+file_handler = logging.FileHandler("logs/shagunpe.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)

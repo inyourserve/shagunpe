@@ -1,4 +1,6 @@
 # Update main.py
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,8 +8,11 @@ from src.api.middleware.rate_limit import RateLimiter
 from src.core.config.app import settings
 from src.core.config.database import db
 from src.api.v1.endpoints import auth
+from src.api.v1.endpoints import events
 from src.cache.redis import redis_client
 from starlette.middleware.base import BaseHTTPMiddleware
+
+os.makedirs("logs", exist_ok=True)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -37,6 +42,11 @@ app.add_middleware(RateLimitMiddleware)
 # Routes
 app.include_router(
     auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"]
+)
+
+
+app.include_router(
+    events.router, prefix=f"{settings.API_V1_PREFIX}/events", tags=["Events"]
 )
 
 

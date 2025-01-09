@@ -1,4 +1,3 @@
-# src/db/models/user.py
 from pydantic import BaseModel, Field
 
 
@@ -7,4 +6,8 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
+    id: str
     phone: str
+    status: str
+    balance: float = 0
+    hold_balance: float = 0
