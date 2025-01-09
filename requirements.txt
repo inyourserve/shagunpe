@@ -28,3 +28,4 @@ cffi==1.17.1
 pydantic-core==2.27.2
 pydantic-settings==2.1.0
 shortuuid
+qrcode
