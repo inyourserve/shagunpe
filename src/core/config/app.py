@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "ShagunPE"
+    BASE_URL: str = "https://api.shagunpe.in"
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = False
     SECRET_KEY: str
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     PAYMENT_TEST_MODE: bool = True  # Default to test mode
     RAZORPAY_KEY_ID: Optional[str] = None
     RAZORPAY_KEY_SECRET: Optional[str] = None
+    RAZORPAY_WEBHOOK_SECRET: Optional[str] = None
 
     class Config:
         env_file = ".env"
