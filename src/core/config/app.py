@@ -1,4 +1,6 @@
 # src/core/config/app.py
+from typing import Optional
+
 from pydantic_settings import BaseSettings
 
 
@@ -24,6 +26,11 @@ class Settings(BaseSettings):
     # MSG91
     MSG91_AUTH_KEY: str
     MSG91_TEMPLATE_ID: str
+
+    # Payment settings
+    PAYMENT_TEST_MODE: bool = True  # Default to test mode
+    RAZORPAY_KEY_ID: Optional[str] = None
+    RAZORPAY_KEY_SECRET: Optional[str] = None
 
     class Config:
         env_file = ".env"

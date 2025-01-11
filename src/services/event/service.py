@@ -1,6 +1,9 @@
-from fastapi import HTTPException
+# services/event/service.py
+from fastapi import HTTPException, BackgroundTasks
 from src.core.config.database import db
 from src.db.models.event import EventCreate
+from src.services.event.event_processor import EventProcessor
+from src.services.event.qr_generator import EventQRGenerator
 import shortuuid
 import logging
 
@@ -9,9 +12,15 @@ logger = logging.getLogger("shagunpe")
 
 class EventService:
     def __init__(self):
-        pass
+        self.qr_generator = EventQRGenerator()
+        self.event_processor = EventProcessor()
 
-    async def create_event(self, event_data: EventCreate, user_id: str):
+    async def create_event(
+        self,
+        event_data: EventCreate,
+        user_id: str,
+        background_tasks: BackgroundTasks = None,
+    ):
         try:
             async with db.pool.acquire() as conn:
                 # Generate unique shagun_id
@@ -34,7 +43,15 @@ class EventService:
                     shagun_id,
                 )
 
+                if background_tasks:
+                    background_tasks.add_task(
+                        self.event_processor.process_new_event, dict(event)
+                    )
+                else:
+                    await self.qr_generator.generate_and_store(dict(event))
+
                 return dict(event)
+
         except Exception as e:
             logger.error(f"Error creating event: {str(e)}")
             raise HTTPException(status_code=500, detail="Error creating event")
@@ -79,6 +96,7 @@ class EventService:
                     raise HTTPException(status_code=404, detail="Event not found")
 
                 return dict(event)
+
         except Exception as e:
             logger.error(f"Error fetching event: {str(e)}")
             raise HTTPException(status_code=500, detail="Error fetching event")

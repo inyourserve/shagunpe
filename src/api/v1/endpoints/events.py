@@ -1,5 +1,6 @@
 # src/api/v1/endpoints/events.py
 from fastapi import APIRouter, Depends, HTTPException
+import logging
 from src.core.security.jwt import jwt_handler, security
 from src.services.event.service import EventService
 from src.db.models.event import EventCreate, EventResponse
@@ -9,6 +10,7 @@ import io
 import base64
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 event_service = EventService()
 
 
@@ -34,24 +36,19 @@ async def get_event(event_id: str, current_user=Depends(jwt_handler.get_current_
 
 @router.get("/events/{event_id}/qr")
 async def get_event_qr(
-    event_id: str, current_user=Depends(jwt_handler.get_current_user)
+    event_id: str,
+    force_refresh: bool = False,
+    current_user=Depends(jwt_handler.get_current_user),
 ):
-    """Get QR code for the event"""
+    """Get QR code for event"""
+    # First verify user has access to this event
     event = await event_service.get_event(event_id, current_user["user_id"])
 
-    # Generate QR code
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(f"shagunpe://event/{event['shagun_id']}")
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    # Convert to base64
-    buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
+    # Get or generate QR
+    qr_data = await event_service.qr_generator.get_qr(event_id, force_refresh)
 
     return {
-        "qr_code": f"data:image/png;base64,{img_str}",
+        "qr_code": qr_data,
         "shagun_id": event["shagun_id"],
+        "event_name": event["event_name"],
     }
