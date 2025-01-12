@@ -77,49 +77,42 @@ class TransactionService:
             raise HTTPException(status_code=500, detail=str(e))
 
     # In TransactionService.create_online_transaction:
-    async def create_online_transaction(
-        self, event_id: UUID, sender_id: UUID, data: Dict
-    ) -> Dict:
+    async def create_online_transaction(self, event_id: UUID, sender_id: UUID, data: Dict) -> Dict:
+        """Create an online transaction with payment initiation"""
         try:
             async with db.pool.acquire() as conn:
-                async with conn.transaction():  # Add transaction block
-                    # First verify event exists and get creator info
-                    event_data = await conn.fetchrow(
-                        """
+                result = await conn.fetchrow(
+                    """
+                    WITH event_data AS (
                         SELECT e.id, e.event_name, u.name as creator_name, e.creator_id
                         FROM events e
                         INNER JOIN users u ON e.creator_id = u.id
                         WHERE e.id = $1
                         FOR UPDATE
-                        """,
-                        event_id,
                     )
-
-                    if not event_data:
-                        raise HTTPException(status_code=404, detail="Event not found")
-
-                    # Create transaction with pending status
-                    transaction = await conn.fetchrow(
-                        """
-                        INSERT INTO transactions (
-                            event_id, sender_id, receiver_id, amount,
-                            type, status, message, created_at
-                        )
-                        VALUES ($1, $2, $3, $4, 'online', 'pending', $5, NOW())
-                        RETURNING *
-                        """,
-                        event_id,
-                        sender_id,
-                        event_data["creator_id"],
-                        data["amount"],
-                        data.get("message"),
+                    INSERT INTO transactions (
+                        event_id, sender_id, receiver_id, amount,
+                        type, status, sender_name, address, message, upi_ref
                     )
+                    SELECT 
+                        $1, $2, creator_id, $3,
+                        'online', 'pending', $4, $5, $6, $7
+                    FROM event_data
+                    RETURNING *
+                    """,
+                    event_id,
+                    sender_id,
+                    data['amount'],
+                    data.get('sender_name'),  # Added sender_name
+                    data.get('address'),  # Added address
+                    data.get('message'),
+                    data.get('upi_ref')
+                )
 
-                    return {
-                        **dict(transaction),
-                        "event_name": event_data["event_name"],
-                        "receiver_name": event_data["creator_name"],
-                    }
+                if not result:
+                    raise HTTPException(status_code=404, detail="Event not found")
+
+                return dict(result)
 
         except Exception as e:
             logger.error(f"Error creating online transaction: {str(e)}")

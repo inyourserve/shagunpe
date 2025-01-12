@@ -27,6 +27,13 @@ class OnlineTransactionCreate(BaseModel):
     event_id: UUID = Field(..., description="ID of the event")
     amount: float = Field(..., gt=0, description="Amount to send")
     payment_method: PaymentMethod = Field(..., description="Payment method")
+    sender_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Name of the person who gave shagun",
+    )
+    address: str = Field(..., max_length=200, description="Address of the sender")
     message: Optional[str] = Field(
         None, max_length=500, description="Optional message with shagun"
     )
