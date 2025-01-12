@@ -8,7 +8,13 @@ from src.api.middleware.rate_limit import RateLimiter
 from src.core.config.app import settings
 from src.core.config.database import db
 from src.api.v1.endpoints import auth
-from src.api.v1.endpoints import events, transactions, payments, webhooks
+from src.api.v1.endpoints import (
+    events,
+    transactions,
+    payments,
+    webhooks,
+    sender_details,
+)
 from src.cache.redis import redis_client
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -61,6 +67,12 @@ app.include_router(
 
 app.include_router(
     webhooks.router, prefix=f"{settings.API_V1_PREFIX}/webhooks", tags=["Webhooks"]
+)
+
+app.include_router(
+    sender_details.router,
+    prefix=f"{settings.API_V1_PREFIX}/sender_details",
+    tags=["Sender Details"],
 )
 
 

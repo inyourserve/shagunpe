@@ -13,7 +13,7 @@ class JWTHandler:
     def __init__(self):
         self.secret_key = settings.SECRET_KEY
         self.algorithm = "HS256"
-        self.access_token_expire_minutes = 60 * 24  # 24 hours
+        self.access_token_expire_minutes = 60 * 2400  # 24 hours
 
     def create_access_token(self, data: dict) -> str:
         to_encode = data.copy()
