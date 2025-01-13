@@ -24,119 +24,111 @@ class WebhookHandler:
             # Parse webhook data
             payload = json.loads(body)
             event = payload.get("event")
-
-            # Extract payment details
             payment_entity = (
                 payload.get("payload", {}).get("payment", {}).get("entity", {})
             )
             order_id = payment_entity.get("order_id")
+            amount = payment_entity.get("amount")  # Amount in paise
 
             if not order_id:
+                logger.error("No order_id in webhook")
                 return {"status": "invalid_payload"}
 
             async with db.pool.acquire() as conn:
                 async with conn.transaction():
-                    # Quick check if payment exists
+                    # Get payment with transaction and event info
                     payment = await conn.fetchrow(
                         """
-                        SELECT id, status 
-                        FROM payments 
-                        WHERE gateway_payment_id = $1
+                        SELECT p.*, t.event_id, t.amount as transaction_amount
+                        FROM payments p
+                        INNER JOIN transactions t ON p.transaction_id = t.id
+                        WHERE p.gateway_payment_id = $1
+                        FOR UPDATE
                         """,
                         order_id,
                     )
 
                     if not payment:
+                        logger.error(f"Payment not found for order_id: {order_id}")
                         return {"status": "payment_not_found"}
 
-                    # If already completed, skip processing
+                    # If payment already completed, skip processing
                     if payment["status"] == "completed":
                         return {"status": "already_processed"}
 
-                    # Process the payment
+                    # Get new status from event
                     new_status = self.status_mapping.get(event, "pending")
-                    await self._update_payment_status(
-                        conn, payment["id"], new_status, payload
+                    logger.info(
+                        f"Processing webhook: order_id={order_id}, event={event}, new_status={new_status}"
                     )
 
-                    return {"status": "success", "new_status": new_status}
+                    if new_status == "completed":
+                        # Update payment, transaction and event
+                        await conn.execute(
+                            """
+                            WITH payment_update AS (
+                                UPDATE payments 
+                                SET status = $1,
+                                    metadata = $2,
+                                    updated_at = NOW()
+                                WHERE id = $3
+                                RETURNING transaction_id
+                            ), transaction_update AS (
+                                UPDATE transactions
+                                SET status = 'completed',
+                                    updated_at = NOW()
+                                WHERE id = (SELECT transaction_id FROM payment_update)
+                                RETURNING event_id
+                            )
+                            UPDATE events
+                            SET total_amount = total_amount + $4,
+                                online_amount = online_amount + $4,
+                                updated_at = NOW()
+                            WHERE id = (SELECT event_id FROM transaction_update)
+                            """,
+                            new_status,
+                            json.dumps(payload),  # Changed from webhook_data to payload
+                            payment["id"],
+                            payment["transaction_amount"],
+                        )
+                        logger.info(
+                            f"Payment completed: order_id={order_id}, amount={payment['transaction_amount']}"
+                        )
+                    else:
+                        # Just update payment and transaction status
+                        await conn.execute(
+                            """
+                            WITH payment_update AS (
+                                UPDATE payments 
+                                SET status = $1,
+                                    metadata = $2,
+                                    updated_at = NOW()
+                                WHERE id = $3
+                            )
+                            UPDATE transactions
+                            SET status = $1,
+                                updated_at = NOW()
+                            WHERE id = $4
+                            """,
+                            new_status,
+                            json.dumps(payload),
+                            payment["id"],
+                            payment["transaction_id"],
+                        )
+                        logger.info(
+                            f"Payment status updated: order_id={order_id}, status={new_status}"
+                        )
 
-        except json.JSONDecodeError:
+                    return {
+                        "status": "success",
+                        "new_status": new_status,
+                        "order_id": order_id,
+                        "amount": amount,
+                    }
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in webhook: {str(e)}")
             return {"status": "invalid_json"}
         except Exception as e:
             logger.error(f"Webhook processing failed: {str(e)}")
             return {"status": "error", "message": str(e)}
-
-    async def process_webhook_batch(self, webhooks: List[Dict]):
-        """Process multiple webhooks in batch"""
-        async with db.pool.acquire() as conn:
-            async with conn.transaction():
-                for webhook in webhooks:
-                    try:
-                        event = webhook.get("event")
-                        payment_entity = (
-                            webhook.get("payload", {})
-                            .get("payment", {})
-                            .get("entity", {})
-                        )
-                        order_id = payment_entity.get("order_id")
-
-                        if not order_id:
-                            continue
-
-                        # Quick status check
-                        payment = await conn.fetchrow(
-                            "SELECT id, status FROM payments WHERE gateway_payment_id = $1",
-                            order_id,
-                        )
-
-                        if not payment or payment["status"] == "completed":
-                            continue
-
-                        # Update status
-                        new_status = self.status_mapping.get(event, "pending")
-                        await self._update_payment_status(
-                            conn, payment["id"], new_status, webhook
-                        )
-
-                    except Exception as e:
-                        logger.error(f"Error processing webhook in batch: {str(e)}")
-                        continue
-
-    async def _update_payment_status(
-        self, conn, payment_id: str, status: str, webhook_data: Dict
-    ):
-        """Update payment status efficiently"""
-        if status == "completed":
-            await conn.execute(
-                """
-                WITH payment_update AS (
-                    UPDATE payments 
-                    SET status = $1,
-                        metadata = $2,
-                        updated_at = NOW()
-                    WHERE id = $3
-                    RETURNING transaction_id
-                )
-                UPDATE transactions
-                SET status = 'completed',
-                    updated_at = NOW()
-                WHERE id = (SELECT transaction_id FROM payment_update)
-                """,
-                status,
-                json.dumps(webhook_data),
-                payment_id,
-            )
-        else:
-            await conn.execute(
-                """
-                UPDATE payments 
-                SET status = $1,
-                    metadata = $2,
-                    updated_at = NOW()
-                WHERE id = $3
-                """,
-                status,
-                json.dumps(webhook_data),
-                payment_id,
-            )

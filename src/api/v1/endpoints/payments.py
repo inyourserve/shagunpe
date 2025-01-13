@@ -16,7 +16,7 @@ payment_processor = PaymentProcessor()
 @router.post("/verify")
 async def verify_payment(
     payment_data: PaymentVerificationData,
-    current_user=Depends(jwt_handler.get_current_user)
+    current_user=Depends(jwt_handler.get_current_user),
 ):
     """
     Verify Razorpay payment
@@ -27,12 +27,11 @@ async def verify_payment(
     try:
         return await payment_processor.verify_payment(
             payment_id=payment_data.razorpay_order_id,
-            verification_data=payment_data.dict()
+            verification_data=payment_data.dict(),
         )
     except Exception as e:
         logger.error(f"Payment verification failed: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
-
 
 
 @router.get("/{payment_id}")

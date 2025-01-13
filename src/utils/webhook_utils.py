@@ -8,12 +8,13 @@ import json
 import logging
 
 logger = logging.getLogger("shagunpe")
-redis = RedisClient()
 
 
 class WebhookUtils:
-    @staticmethod
-    def verify_signature(body: bytes, signature: str) -> bool:
+    def __init__(self):
+        self.redis = RedisClient()
+
+    def verify_signature(self, body: bytes, signature: str) -> bool:
         """Verify Razorpay webhook signature"""
         try:
             expected = hmac.new(
@@ -24,8 +25,7 @@ class WebhookUtils:
             logger.error(f"Signature verification failed: {str(e)}")
             return False
 
-    @staticmethod
-    def parse_webhook_data(body: bytes) -> Optional[Dict]:
+    def parse_webhook_data(self, body: bytes) -> Optional[Dict]:
         """Parse webhook request body"""
         try:
             payload = json.loads(body)
@@ -34,34 +34,27 @@ class WebhookUtils:
             # Handle both payment and order events
             if event.startswith("payment."):
                 entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
-            elif event == "order.paid":
-                entity = payload.get("payload", {}).get("order", {}).get("entity", {})
             else:
                 entity = {}
 
             return {
                 "event": event,
-                "order_id": entity.get("order_id")
-                or entity.get("id"),  # order.id for order events
+                "order_id": entity.get("order_id"),
                 "payment_id": entity.get("id"),
                 "amount": entity.get("amount", 0),
+                "status": entity.get("status"),
                 "raw_payload": payload,
             }
-        except json.JSONDecodeError:
-            logger.error("Invalid JSON in webhook payload")
-            return None
         except Exception as e:
             logger.error(f"Error parsing webhook data: {str(e)}")
             return None
 
-    @staticmethod
-    async def is_duplicate_webhook(signature: str) -> bool:
+    async def is_duplicate_webhook(self, signature: str) -> bool:
         """Check if webhook was already processed"""
         key = f"webhook:processed:{signature}"
-        return await redis.exists(key)
+        return bool(await self.redis.exists(key))
 
-    @staticmethod
-    async def mark_webhook_processed(signature: str, expiry: int = 3600):
-        """Mark webhook as processed"""
+    async def mark_webhook_processed(self, signature: str):
+        """Mark webhook as processed with 24hr expiry"""
         key = f"webhook:processed:{signature}"
-        await redis.set(key, "1", expiry)
+        await self.redis.set(key, "1", ex=86400)  # 24 hours expiry

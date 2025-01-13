@@ -10,7 +10,9 @@ logger = logging.getLogger("shagunpe")
 
 
 class SenderDetailService:
-    async def _ensure_single_default(self, conn, user_id: UUID, exclude_id: Optional[UUID] = None) -> None:
+    async def _ensure_single_default(
+        self, conn, user_id: UUID, exclude_id: Optional[UUID] = None
+    ) -> None:
         """Ensure only one default sender detail exists for a user"""
         query = """
             SELECT COUNT(*) FROM sender_details 
@@ -35,7 +37,7 @@ class SenderDetailService:
                     ORDER BY created_at DESC LIMIT 1
                 )
                 """,
-                user_id
+                user_id,
             )
 
     async def create_sender_detail(self, user_id: UUID, data: Dict) -> Dict:
@@ -46,7 +48,7 @@ class SenderDetailService:
                     # Check existing records
                     existing_count = await conn.fetchval(
                         "SELECT COUNT(*) FROM sender_details WHERE user_id = $1",
-                        user_id
+                        user_id,
                     )
 
                     is_default = data.get("is_default", False) or existing_count == 0
@@ -59,7 +61,7 @@ class SenderDetailService:
                             SET is_default = false
                             WHERE user_id = $1
                             """,
-                            user_id
+                            user_id,
                         )
 
                     # Create new sender detail
@@ -73,7 +75,7 @@ class SenderDetailService:
                         user_id,
                         data["name"],
                         data["address"],
-                        is_default
+                        is_default,
                     )
 
                     # Verify data consistency
@@ -107,7 +109,7 @@ class SenderDetailService:
                     WHERE user_id = $1
                     ORDER BY is_default DESC, created_at DESC
                     """,
-                    user_id
+                    user_id,
                 )
 
                 sender_details = [dict(row) for row in rows]
@@ -146,7 +148,7 @@ class SenderDetailService:
                     FROM sender_details
                     WHERE user_id = $1 AND is_default = true
                     """,
-                    user_id
+                    user_id,
                 )
 
                 if not sender_detail:
@@ -168,13 +170,14 @@ class SenderDetailService:
                     # Check if the sender detail exists
                     existing = await conn.fetchrow(
                         "SELECT is_default FROM sender_details WHERE id = $1 AND user_id = $2",
-                        id, user_id
+                        id,
+                        user_id,
                     )
 
                     if not existing:
                         raise NotFoundError("Sender detail not found")
 
-                    new_is_default = data.get('is_default')
+                    new_is_default = data.get("is_default")
 
                     # If setting as default
                     if new_is_default:
@@ -184,7 +187,8 @@ class SenderDetailService:
                             SET is_default = false
                             WHERE user_id = $1 AND id != $2
                             """,
-                            user_id, id
+                            user_id,
+                            id,
                         )
 
                     # Update the sender detail
@@ -198,11 +202,11 @@ class SenderDetailService:
                         WHERE id = $4 AND user_id = $5
                         RETURNING *
                         """,
-                        data['name'],
-                        data['address'],
+                        data["name"],
+                        data["address"],
                         new_is_default,
                         id,
-                        user_id
+                        user_id,
                     )
 
                     # Verify data consistency
@@ -224,14 +228,15 @@ class SenderDetailService:
                     # Get current state
                     current_detail = await conn.fetchrow(
                         "SELECT is_default FROM sender_details WHERE id = $1 AND user_id = $2",
-                        id, user_id
+                        id,
+                        user_id,
                     )
 
                     if not current_detail:
                         raise NotFoundError("Sender detail not found")
 
                     # If deleting default, set another as default if exists
-                    if current_detail['is_default']:
+                    if current_detail["is_default"]:
                         await conn.execute(
                             """
                             UPDATE sender_details 
@@ -243,14 +248,12 @@ class SenderDetailService:
                                 ORDER BY created_at ASC LIMIT 1
                             )
                             """,
-                            user_id, id
+                            user_id,
+                            id,
                         )
 
                     # Delete the sender detail
-                    await conn.execute(
-                        "DELETE FROM sender_details WHERE id = $1",
-                        id
-                    )
+                    await conn.execute("DELETE FROM sender_details WHERE id = $1", id)
 
                     return {"message": "Sender detail deleted successfully"}
 

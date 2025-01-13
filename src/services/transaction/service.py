@@ -77,7 +77,9 @@ class TransactionService:
             raise HTTPException(status_code=500, detail=str(e))
 
     # In TransactionService.create_online_transaction:
-    async def create_online_transaction(self, event_id: UUID, sender_id: UUID, data: Dict) -> Dict:
+    async def create_online_transaction(
+        self, event_id: UUID, sender_id: UUID, data: Dict
+    ) -> Dict:
         """Create an online transaction with payment initiation"""
         try:
             async with db.pool.acquire() as conn:
@@ -102,11 +104,11 @@ class TransactionService:
                     """,
                     event_id,
                     sender_id,
-                    data['amount'],
-                    data.get('sender_name'),  # Added sender_name
-                    data.get('address'),  # Added address
-                    data.get('message'),
-                    data.get('upi_ref')
+                    data["amount"],
+                    data.get("sender_name"),  # Added sender_name
+                    data.get("address"),  # Added address
+                    data.get("message"),
+                    data.get("upi_ref"),
                 )
 
                 if not result:

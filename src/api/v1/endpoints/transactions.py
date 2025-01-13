@@ -23,9 +23,9 @@ payment_processor = PaymentProcessor()
 
 @router.post("/send", response_model=TransactionResponse)
 async def send_shagun(
-        data: OnlineTransactionCreate,
-        background_tasks: BackgroundTasks,
-        current_user=Depends(jwt_handler.get_current_user),
+    data: OnlineTransactionCreate,
+    background_tasks: BackgroundTasks,
+    current_user=Depends(jwt_handler.get_current_user),
 ):
     """
     Send online shagun for an event.
@@ -39,7 +39,7 @@ async def send_shagun(
         transaction = await transaction_service.create_online_transaction(
             event_id=data.event_id,
             sender_id=current_user["user_id"],
-            data=data.dict()  # Use data as is, don't overwrite sender_name
+            data=data.dict(),  # Use data as is, don't overwrite sender_name
         )
 
         # Process payment
@@ -59,7 +59,6 @@ async def send_shagun(
     except Exception as e:
         logger.error(f"Error in send_shagun: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.post("/cash-entry", response_model=TransactionResponse)
