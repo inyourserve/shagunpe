@@ -14,6 +14,7 @@ from src.api.v1.endpoints import (
     payments,
     webhooks,
     sender_details,
+    shaguns
 )
 from src.cache.redis import redis_client
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -59,6 +60,10 @@ app.include_router(
     transactions.router,
     prefix=f"{settings.API_V1_PREFIX}/transactions",
     tags=["Transactions"],
+)
+
+app.include_router(
+    shaguns.router, prefix=f"{settings.API_V1_PREFIX}/shaguns", tags=["Shaguns"]
 )
 
 app.include_router(
