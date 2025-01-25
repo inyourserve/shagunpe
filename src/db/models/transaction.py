@@ -97,8 +97,21 @@ class TransactionResponse(BaseModel):
         from_attributes = True
 
 
-class TransactionDetailResponse(TransactionResponse):
-    event_date: Optional[datetime]
+class TransactionDetailResponse(BaseModel):
+    # Sender details
+    sender_name: str
+    sender_address: str
+
+    # Amount details
+    amount: float
+    status: str  # Received/Sent
+
+    # Event details
+    event_name: str
+    event_date: datetime
+    location: str
+    message: Optional[str]
+    created_at: datetime
 
 
 class EventTransactionSummary(BaseModel):

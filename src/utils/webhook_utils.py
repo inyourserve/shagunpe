@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger("shagunpe")
 
+
 class WebhookUtils:
     WEBHOOK_EXPIRY = 86400  # 24 hours
     RATE_LIMIT_WINDOW = 60  # 1 minute
@@ -17,9 +18,7 @@ class WebhookUtils:
         """Verify Razorpay webhook signature"""
         try:
             expected = hmac.new(
-                settings.RAZORPAY_WEBHOOK_SECRET.encode(),
-                body,
-                hashlib.sha256
+                settings.RAZORPAY_WEBHOOK_SECRET.encode(), body, hashlib.sha256
             ).hexdigest()
             return hmac.compare_digest(expected, signature)
         except Exception as e:

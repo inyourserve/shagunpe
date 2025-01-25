@@ -8,7 +8,6 @@ from src.db.models.transaction import (
     CashTransactionCreate,
     TransactionResponse,
     TransactionDetailResponse,
-    EventTransactionsResponse,
 )
 from typing import List, Optional
 from uuid import UUID
@@ -80,90 +79,10 @@ async def add_cash_entry(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("", response_model=List[TransactionResponse])
-async def get_transactions(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    type: Optional[str] = Query(None, regex="^(online|cash)$"),
-    status: Optional[str] = Query(None, regex="^(pending|completed|failed)$"),
-    current_user=Depends(jwt_handler.get_current_user),
-):
-    """
-    Get user's transaction history with filtering options.
-    """
-    return await transaction_service.get_transactions(
-        user_id=current_user["user_id"],
-        skip=skip,
-        limit=limit,
-        type=type,
-        status=status,
-    )
-
-
 @router.get("/{transaction_id}", response_model=TransactionDetailResponse)
-async def get_transaction_details(
+async def get_transaction_detail(
     transaction_id: UUID, current_user=Depends(jwt_handler.get_current_user)
 ):
-    """
-    Get detailed information about a specific transaction.
-    """
-    return await transaction_service.get_transaction_details(
+    return await TransactionService().get_transaction_detail(
         transaction_id=transaction_id, user_id=current_user["user_id"]
     )
-
-
-@router.get("/event/{event_id}", response_model=EventTransactionsResponse)
-async def get_event_transactions(
-    event_id: UUID,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    type: Optional[str] = Query(None, regex="^(online|cash)$"),
-    current_user=Depends(jwt_handler.get_current_user),
-):
-    """
-    Get all transactions for a specific event with summary.
-    """
-    return await transaction_service.get_event_transactions(
-        event_id=event_id, skip=skip, limit=limit, type=type
-    )
-
-
-@router.post("/{transaction_id}/verify")
-async def verify_transaction(
-    transaction_id: UUID,
-    verification_data: dict,
-    current_user=Depends(jwt_handler.get_current_user),
-):
-    """
-    Verify payment status for online transactions.
-    """
-    return await transaction_service.update_transaction_status(
-        transaction_id=transaction_id,
-        status="completed",
-        payment_data=verification_data,
-    )
-
-
-@router.get("/{transaction_id}/receipt")
-async def get_transaction_receipt(
-    transaction_id: UUID, current_user=Depends(jwt_handler.get_current_user)
-):
-    """
-    Generate receipt for a transaction.
-    """
-    transaction = await transaction_service.get_transaction_details(
-        transaction_id=transaction_id, user_id=current_user["user_id"]
-    )
-
-    # Add receipt generation logic here
-    receipt_data = {
-        "transaction_id": transaction["id"],
-        "amount": transaction["amount"],
-        "sender_name": transaction["sender_name"],
-        "event_name": transaction["event_name"],
-        "date": transaction["created_at"],
-        "type": transaction["type"],
-        "status": transaction["status"],
-    }
-
-    return receipt_data

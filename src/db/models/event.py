@@ -26,3 +26,24 @@ class EventResponse(BaseModel):
     cash_amount: float
     status: str
     created_at: datetime
+
+
+class EventQRResponse(BaseModel):
+    event_id: str
+    event_name: str
+    event_date: date
+    village: Optional[str]
+    qr_code: str
+    shagun_id: str
+    status: str
+    created_at: datetime
+
+
+class EventByShagunIDResponse(BaseModel):
+    event_id: UUID
+    event_name: str
+    event_date: date
+    village: Optional[str]
+    guardian_name: Optional[str]
+    status: str
+    created_at: datetime

@@ -100,3 +100,31 @@ class EventService:
         except Exception as e:
             logger.error(f"Error fetching event: {str(e)}")
             raise HTTPException(status_code=500, detail="Error fetching event")
+
+    async def get_event_by_shagun_id(self, shagun_id: str):
+        try:
+            async with db.pool.acquire() as conn:
+                event = await conn.fetchrow(
+                    """
+                    SELECT 
+                        id::text as event_id,
+                        event_name,
+                        event_date,
+                        village,
+                        guardian_name,
+                        COALESCE(status, 'active') as status,
+                        created_at
+                    FROM events 
+                    WHERE LOWER(shagun_id) = LOWER($1)
+                    """,
+                    shagun_id,
+                )
+
+                if not event:
+                    raise HTTPException(status_code=404, detail="Event not found")
+
+                return dict(event)
+
+        except Exception as e:
+            logger.error(f"Error fetching event by shagun_id: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))

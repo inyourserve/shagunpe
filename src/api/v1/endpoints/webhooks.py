@@ -13,15 +13,14 @@ webhook_utils = WebhookUtils()
 
 @router.post("/razorpay")
 async def razorpay_webhook(
-        request: Request,
-        x_razorpay_signature: str = Header(..., alias="X-Razorpay-Signature")
+    request: Request,
+    x_razorpay_signature: str = Header(..., alias="X-Razorpay-Signature"),
 ):
     """Handle Razorpay webhook events"""
     try:
         body = await request.body()
         result = await webhook_handler.handle_payment_webhook(
-            body=body,
-            signature=x_razorpay_signature
+            body=body, signature=x_razorpay_signature
         )
         return result
 
@@ -30,9 +29,8 @@ async def razorpay_webhook(
         # Always return 200 for webhooks
         return {
             "status": "error",
-            "message": "Internal server error, but webhook received"
+            "message": "Internal server error, but webhook received",
         }
-
 
 
 @router.get("/razorpay/test")

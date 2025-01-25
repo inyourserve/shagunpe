@@ -11,12 +11,12 @@ logger = logging.getLogger("shagunpe")
 
 class ShagunService:
     async def get_event_shaguns(
-            self,
-            event_id: UUID,
-            search: Optional[str] = None,
-            type: Optional[str] = None,
-            page: int = 1,
-            page_size: int = 10
+        self,
+        event_id: UUID,
+        search: Optional[str] = None,
+        type: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 10,
     ) -> Dict:
         try:
             async with db.pool.acquire() as conn:
@@ -42,7 +42,7 @@ class ShagunService:
                     WHERE e.id = $1
                     GROUP BY e.id
                     """,
-                    event_id
+                    event_id,
                 )
 
                 if not event:
@@ -100,7 +100,10 @@ class ShagunService:
                     {base_query}
                     ORDER BY t.created_at DESC
                     LIMIT $%d OFFSET $%d
-                """ % (param_count + 1, param_count + 2)
+                """ % (
+                    param_count + 1,
+                    param_count + 2,
+                )
 
                 params.extend([page_size, offset])
                 shaguns = await conn.fetch(query, *params)
@@ -120,14 +123,14 @@ class ShagunService:
                         "cash_shagun": float(event["cash_shagun"]),
                         "shagun_count": int(event["shagun_count"]),
                         "online_count": int(event["online_count"]),
-                        "cash_count": int(event["cash_count"])
+                        "cash_count": int(event["cash_count"]),
                     },
                     "shaguns": [
                         {
                             **dict(tx),
                             "amount": float(tx["amount"]),
                             "created_at": tx["created_at"],
-                            "time_ago": tx["time_ago"]
+                            "time_ago": tx["time_ago"],
                         }
                         for tx in shaguns
                     ],
@@ -137,8 +140,8 @@ class ShagunService:
                         "total_count": total_count,
                         "total_pages": total_pages,
                         "has_next": has_next,
-                        "has_previous": has_previous
-                    }
+                        "has_previous": has_previous,
+                    },
                 }
 
         except Exception as e:

@@ -17,7 +17,7 @@ class WebhookHandler:
             "payment.captured": "completed",
             "payment.failed": "failed",
             "payment.authorized": "processing",
-            "order.paid": "completed"
+            "order.paid": "completed",
         }
 
         # Separate mapping for transaction status
@@ -25,14 +25,16 @@ class WebhookHandler:
             "payment.captured": "completed",
             "payment.failed": "failed",
             "payment.authorized": "pending",  # Keep as pending until captured
-            "order.paid": "completed"
+            "order.paid": "completed",
         }
 
     async def handle_payment_webhook(self, body: bytes, signature: str) -> Dict:
         try:
             payload = json.loads(body)
             event = payload.get("event")
-            payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+            payment_entity = (
+                payload.get("payload", {}).get("payment", {}).get("entity", {})
+            )
             order_id = payment_entity.get("order_id")
 
             logger.info(f"Processing webhook: event={event}, order_id={order_id}")
@@ -50,7 +52,7 @@ class WebhookHandler:
                         WHERE p.gateway_payment_id = $1
                         FOR UPDATE
                         """,
-                        order_id
+                        order_id,
                     )
 
                     if not payment:
@@ -88,9 +90,9 @@ class WebhookHandler:
                             """,
                             new_payment_status,
                             json.dumps(payload),
-                            payment['id'],
+                            payment["id"],
                             new_transaction_status,
-                            payment['transaction_amount']
+                            payment["transaction_amount"],
                         )
                     else:
                         # Update statuses for other events
@@ -110,21 +112,18 @@ class WebhookHandler:
                             """,
                             new_payment_status,
                             json.dumps(payload),
-                            payment['id'],
+                            payment["id"],
                             new_transaction_status,
-                            payment['transaction_id']
+                            payment["transaction_id"],
                         )
 
                     return {
                         "status": "success",
                         "payment_status": new_payment_status,
                         "transaction_status": new_transaction_status,
-                        "order_id": order_id
+                        "order_id": order_id,
                     }
 
         except Exception as e:
             logger.error(f"Webhook processing failed: {str(e)}")
             return {"status": "error", "message": str(e)}
-
-
-

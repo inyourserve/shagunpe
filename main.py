@@ -14,7 +14,7 @@ from src.api.v1.endpoints import (
     payments,
     webhooks,
     sender_details,
-    shaguns
+    shaguns,
 )
 from src.cache.redis import redis_client
 from starlette.middleware.base import BaseHTTPMiddleware
