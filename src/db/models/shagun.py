@@ -1,7 +1,6 @@
-# src/db/models/shagun.py
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 from uuid import UUID
 
 
@@ -27,12 +26,27 @@ class ShagunListItem(BaseModel):
         from_attributes = True
 
 
+class PaginationInfo(BaseModel):
+    page: int
+    page_size: int
+    total_count: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class PaginatedShaguns(BaseModel):
+    items: List[ShagunListItem]
+    pagination: PaginationInfo
+
+
 class EventShagunResponse(BaseModel):
     event_name: str
     event_date: datetime
     event_location: Optional[str]
     summary: ShagunSummary
-    shaguns: List[ShagunListItem]
+    online_shaguns: PaginatedShaguns
+    cash_shaguns: PaginatedShaguns
 
     class Config:
         from_attributes = True
