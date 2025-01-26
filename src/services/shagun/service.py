@@ -45,6 +45,8 @@ class ShagunService:
                     base_query = """
                        FROM transactions t 
                        WHERE t.event_id = $1 AND t.type = $2
+                       AND t.status = 'completed'
+                       
                    """
                     params = [event_id, type]
 
