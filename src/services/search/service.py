@@ -6,6 +6,7 @@ from src.core.config.database import db
 
 logger = logging.getLogger("shagunpe")
 
+
 class SearchService:
     async def search_shaguns(
         self,
@@ -29,7 +30,8 @@ class SearchService:
                 params = [event_id, f"%{query}%"]
 
                 # Get total count and results in one query for better performance
-                results = await conn.fetch(f"""
+                results = await conn.fetch(
+                    f"""
                     WITH matched_results AS (
                         SELECT 
                             t.id, 
@@ -55,15 +57,19 @@ class SearchService:
                             ELSE to_char(created_at, 'DD Mon YYYY')
                         END as time_ago
                     FROM matched_results
-                """, *params, page_size, (page - 1) * page_size)
+                """,
+                    *params,
+                    page_size,
+                    (page - 1) * page_size,
+                )
 
-                total_count = results[0]['total_count'] if results else 0
+                total_count = results[0]["total_count"] if results else 0
 
                 return {
                     "results": [
                         {
                             **dict(tx),
-                            "total_count": None  # Remove total_count from individual results
+                            "total_count": None,  # Remove total_count from individual results
                         }
                         for tx in results
                     ],
@@ -73,8 +79,8 @@ class SearchService:
                         "total_count": total_count,
                         "total_pages": (total_count + page_size - 1) // page_size,
                         "has_next": (page * page_size) < total_count,
-                        "has_previous": page > 1
-                    }
+                        "has_previous": page > 1,
+                    },
                 }
 
         except Exception as e:
