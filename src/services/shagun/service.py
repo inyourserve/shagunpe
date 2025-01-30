@@ -1,4 +1,5 @@
-from typing import Dict, Optional
+# src/services/shagun/service.py
+from typing import Dict
 from uuid import UUID
 from fastapi import HTTPException
 import logging
@@ -12,7 +13,6 @@ class ShagunService:
     async def get_event_shaguns(
         self,
         event_id: UUID,
-        search: Optional[str] = None,
         page_online: int = 1,
         page_cash: int = 1,
         page_size: int = 10,
@@ -21,19 +21,19 @@ class ShagunService:
             async with db.pool.acquire() as conn:
                 event = await conn.fetchrow(
                     """
-                   SELECT 
-                       e.id, e.event_name, e.event_date, e.location,
-                       COALESCE(SUM(t.amount), 0) as total_shagun,
-                       COALESCE(SUM(CASE WHEN t.type = 'online' THEN t.amount ELSE 0 END), 0) as online_shagun,
-                       COALESCE(SUM(CASE WHEN t.type = 'cash' THEN t.amount ELSE 0 END), 0) as cash_shagun,
-                       COUNT(t.*) as shagun_count,
-                       COUNT(CASE WHEN t.type = 'online' THEN 1 END) as online_count,
-                       COUNT(CASE WHEN t.type = 'cash' THEN 1 END) as cash_count
-                   FROM events e
-                   LEFT JOIN transactions t ON e.id = t.event_id AND t.status = 'completed'
-                   WHERE e.id = $1
-                   GROUP BY e.id
-               """,
+                    SELECT 
+                        e.id, e.event_name, e.event_date, e.location,
+                        COALESCE(SUM(t.amount), 0) as total_shagun,
+                        COALESCE(SUM(CASE WHEN t.type = 'online' THEN t.amount ELSE 0 END), 0) as online_shagun,
+                        COALESCE(SUM(CASE WHEN t.type = 'cash' THEN t.amount ELSE 0 END), 0) as cash_shagun,
+                        COUNT(t.*) as shagun_count,
+                        COUNT(CASE WHEN t.type = 'online' THEN 1 END) as online_count,
+                        COUNT(CASE WHEN t.type = 'cash' THEN 1 END) as cash_count
+                    FROM events e
+                    LEFT JOIN transactions t ON e.id = t.event_id AND t.status = 'completed'
+                    WHERE e.id = $1
+                    GROUP BY e.id
+                """,
                     event_id,
                 )
 
@@ -43,22 +43,12 @@ class ShagunService:
                 async def get_shaguns_by_type(type: str, page: int):
                     offset = (page - 1) * page_size
                     base_query = """
-                       FROM transactions t 
-                       WHERE t.event_id = $1 AND t.type = $2
-                       AND t.status = 'completed'
-                       
-                   """
+                        FROM transactions t 
+                        WHERE t.event_id = $1 
+                        AND t.type = $2
+                        AND t.status = 'completed'
+                    """
                     params = [event_id, type]
-
-                    if search:
-                        base_query += """
-                           AND (
-                               t.sender_name ILIKE $3 
-                               OR t.address ILIKE $3
-                               OR similarity(t.sender_name, $3) > 0.3
-                           )
-                       """
-                        params.append(f"%{search}%")
 
                     total_count = await conn.fetchval(
                         f"SELECT COUNT(*) {base_query}", *params
@@ -66,23 +56,22 @@ class ShagunService:
 
                     shaguns = await conn.fetch(
                         f"""
-                       SELECT 
-                           t.id, t.sender_name, t.address as sender_address,
-                           t.amount, t.type, t.created_at, t.location,
-                           CASE
-                               WHEN NOW() - t.created_at < INTERVAL '1 hour' 
-                                   THEN EXTRACT(MINUTE FROM NOW() - t.created_at)::TEXT || ' min ago'
-                               WHEN NOW() - t.created_at < INTERVAL '24 hours' 
-                                   THEN EXTRACT(HOUR FROM NOW() - t.created_at)::TEXT || 'h ago'
-                               WHEN NOW() - t.created_at < INTERVAL '7 days' 
-                                   THEN EXTRACT(DAY FROM NOW() - t.created_at)::TEXT || 'd ago'
-                               ELSE to_char(t.created_at, 'DD Mon YYYY')
-                           END as time_ago
-                       {base_query}
-                       ORDER BY t.created_at DESC
-                       LIMIT $%d OFFSET $%d
-                   """
-                        % (len(params) + 1, len(params) + 2),
+                        SELECT 
+                            t.id, t.sender_name, t.address as sender_address,
+                            t.amount, t.type, t.created_at, t.location,
+                            CASE
+                                WHEN NOW() - t.created_at < INTERVAL '1 hour' 
+                                    THEN EXTRACT(MINUTE FROM NOW() - t.created_at)::TEXT || ' min ago'
+                                WHEN NOW() - t.created_at < INTERVAL '24 hours' 
+                                    THEN EXTRACT(HOUR FROM NOW() - t.created_at)::TEXT || 'h ago'
+                                WHEN NOW() - t.created_at < INTERVAL '7 days' 
+                                    THEN EXTRACT(DAY FROM NOW() - t.created_at)::TEXT || 'd ago'
+                                ELSE to_char(t.created_at, 'DD Mon YYYY')
+                            END as time_ago
+                        {base_query}
+                        ORDER BY t.created_at DESC
+                        LIMIT $3 OFFSET $4
+                    """,
                         *params,
                         page_size,
                         offset,

@@ -15,6 +15,7 @@ from src.api.v1.endpoints import (
     webhooks,
     sender_details,
     shaguns,
+    search
 )
 from src.cache.redis import redis_client
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -78,6 +79,12 @@ app.include_router(
     sender_details.router,
     prefix=f"{settings.API_V1_PREFIX}/sender_details",
     tags=["Sender Details"],
+)
+
+app.include_router(
+    search.router,
+    prefix=f"{settings.API_V1_PREFIX}/search",
+    tags=["Search"],
 )
 
 

@@ -1,6 +1,7 @@
+# src/db/models/shagun.py
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List
 from uuid import UUID
 
 
